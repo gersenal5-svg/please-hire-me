@@ -69,7 +69,7 @@ so you are not debugging it halfway through a filled form.
 </details>
 
 ```bash
-git clone https://github.com/alecswang/please-hire-me.git
+git clone https://github.com/igueu16/please-hire-me.git
 cd please-hire-me
 ```
 
