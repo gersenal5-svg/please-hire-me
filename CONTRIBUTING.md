@@ -56,7 +56,7 @@ failed on yours, that is a bug worth a PR: better detection, clearer errors, Lin
 ## Setting up to develop
 
 ```bash
-git clone https://github.com/alecswang/please-hire-me.git
+git clone https://github.com/igueu16/please-hire-me.git
 cd please-hire-me
 ./setup.sh
 ```
