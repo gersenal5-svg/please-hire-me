@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Wrapper used by the scheduler (launchd / cron). One bounded run, everything logged.
+# Wrapper used by the scheduler (launchd / cron). One bounded FIND run, everything logged.
+# Approval fork: the schedule only finds listings. It never submits; ./apply.sh does, after ./review.sh.
 # Run it by hand any time to see exactly what the scheduler sees.
 set -uo pipefail
 
@@ -8,8 +9,8 @@ mkdir -p logs
 LOG_FILE="logs/scheduled-run.log"
 
 {
-  printf '\n=== Scheduled run: %s ===\n' "$(date '+%Y-%m-%d %H:%M:%S %Z')"
-  ./run.sh
+  printf '\n=== Scheduled find: %s ===\n' "$(date '+%Y-%m-%d %H:%M:%S %Z')"
+  ./find.sh
   status=$?
   printf '=== Session exited with status %s ===\n' "$status"
 

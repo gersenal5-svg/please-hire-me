@@ -1,8 +1,12 @@
 <div align="center">
 
-# please-hire-me
+# please-hire-me — approval fork
 
-**An agent that fills out real job applications while you sleep.**
+**An agent that finds real job openings, shows them to you, and applies only to the ones you approve.**
+
+<sub>Fork of [igueu16/please-hire-me](https://github.com/igueu16/please-hire-me). The upstream agent finds and
+submits in one autonomous run. This fork splits that into **find → you review → apply**, so nothing is
+ever sent without your yes. See [What this fork changes](#what-this-fork-changes).</sub>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-black.svg)](LICENSE)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-black.svg)](CONTRIBUTING.md)
@@ -10,9 +14,9 @@
 [![macOS | Linux](https://img.shields.io/badge/macOS-%7C%20Linux-black.svg)](#quick-start)
 
 You set it up once, in one conversation of about five minutes, and it writes your config from your
-resume. After that it runs autonomously, finding live openings, internships and new-grad roles
-alike, filling the company's own Greenhouse / Lever / Ashby form field by field in your real Chrome,
-and submitting. Every answer is logged before it clicks, every submit is screenshotted, and it never
+resume. After that it finds live openings, internships and new-grad roles alike, and puts them on a
+review list. You approve the ones you want; then it fills the company's own Greenhouse / Lever / Ashby
+form field by field in your real Chrome, and submits those. Every answer is logged before it clicks, every submit is screenshotted, and it never
 invents a fact about you.
 
 </div>
@@ -27,12 +31,14 @@ invents a fact about you.
 2. **It finds roles.** Sweeps public company job boards (Greenhouse, Ashby, Lever, Workable), VC
    portfolio boards and LinkedIn's public search, then keeps only postings that pass your filters:
    title, location, pay floor, years of experience and your own quality bar.
-3. **It applies on the company's own form.** For each match it tailors a one-page resume to the posting
+3. **You approve.** `./review.sh` opens the list in your browser: company, role, pay, why it matched, and
+   anything to watch for. Approve or reject each one. Nothing is applied to until you do.
+4. **It applies on the company's own form, approved listings only.** For each one you approved it tailors a one-page resume to the posting
    (facts from your resume only), fills the real application in your Chrome with real clicks and
    keystrokes, logs every answer, submits, and screenshots the confirmation. It never invents a fact,
    never creates an account, and never uses Easy Apply.
-4. **Workday portals:** you sign in, and the bundled Chrome extension fills the form. You click Submit.
-5. **Recruiter outreach:** it sorts your applications into tiers, finds a recruiter or hiring manager at
+5. **Workday portals:** you sign in, and the bundled Chrome extension fills the form. You click Submit.
+6. **Recruiter outreach:** it sorts your applications into tiers, finds a recruiter or hiring manager at
    each company, and drafts a short email into your Gmail Drafts. Nothing sends until you approve the batch.
 
 > **Recommended: connect [Apollo](https://www.apollo.io) for email outreach.** A short note to a
@@ -95,28 +101,44 @@ want this role?". Letting Claude draft it from your resume is why the guided pat
 
 </details>
 
-**Run it:**
+**Run it, in three steps:**
 
 ```bash
-./run.sh          # one run, using your settings
-./run.sh 1        # a single application, good for a first test
+./find.sh                  # 1. find and vet new listings (10-20 min). Never submits anything.
+./review.sh                # 2. a page opens in your browser: Approve or Reject each listing
+./apply.sh                 # 3. submit ONLY the listings you approved
 ```
 
-<details>
-<summary><b>How much rope to give it</b></summary>
+Variations:
 
-**The first application is supervised.** At the end of setup it fills one real posting, shows you
-every answer, and submits only after you say yes. Say no and it closes the tab and sends nothing.
-A real application with a checkpoint, not a rehearsal.
+```bash
+./review.sh --cli          # review in the terminal instead (a = approve, r = reject, o = open the posting)
+./apply.sh 2               # submit at most 2 of your approved listings this time
+./apply.sh --checkpoint    # watch it work; it also stops before EVERY Submit click and waits for your yes
+python3 scripts/review.py list -v      # everything it has found, with status
+```
 
-**Scheduled runs submit on their own.** Once `schedule.frequency` is set and the job is installed,
-there is no per-application checkpoint. That is the point of it.
+## What this fork changes
 
-**Want a checkpoint every time?** `./run.sh` cannot give you one, it launches a headless session
-with nobody there to approve. Instead, open the repo in Claude Code and ask for a run, saying stop
-before submitting. You get the same checkpoint as the first application, every time.
+| | Upstream | This fork |
+|---|---|---|
+| Finding | `./run.sh` finds and submits in one run | `./find.sh` finds and vets, then stops |
+| Your say | none after setup | every listing waits on your Approve in `./review.sh` |
+| Submitting | whatever the agent judged good enough | only what you approved, via `./apply.sh` |
+| Schedule | submits on its own every N hours | only finds; you get a macOS notification when listings are waiting |
+| `./run.sh` | the autonomous run | an alias for `./find.sh`, so old habits can never auto-submit |
 
-</details>
+**How the gate is enforced, not just requested.** The approval list lives in `state/review.json`
+(gitignored, like everything about you). Statuses: `pending` → you set `approved` or `rejected` →
+`./apply.sh` sets `submitted`, `needs_human` or `skipped`. The agent can only mark listings you
+approved, and it cannot approve anything itself. On top of the instructions in the prompt, a Claude
+Code hook (`.claude/hooks/approval-gate.sh`) blocks the browser entirely during `./find.sh`, and
+during `./apply.sh` blocks navigation to any site that is not one of your approved postings (on shared
+job-board hosts like `jobs.ashbyhq.com`, the company slug must match too). A listing you rejected is
+remembered and never shown again.
+
+**Two levels of approval.** `./apply.sh` treats your Approve as the go-ahead and submits headless.
+If you also want to read every filled-in answer before it goes, use `./apply.sh --checkpoint`.
 
 ---
 
@@ -199,7 +221,7 @@ overflow, text dropped by a bad escape, and ligature glyphs that ATS parsers mis
 
 Rules for both: [`config/documents.md`](config/documents.md).
 
-Run it on a schedule:
+Run the FIND step on a schedule (it never submits; it notifies you when there is something to review):
 
 ```bash
 ./scripts/schedule.sh install        # reads schedule.frequency
@@ -354,7 +376,8 @@ answer, a line in the log, a confirmation screenshot, and `state/status.md` as m
 ```
 please-hire-me/
 ├── setup.sh                  # one-time interactive setup
-├── run.sh                    # one bounded run
+├── find.sh / review.sh / apply.sh   # find → you approve → submit approved only
+├── run.sh                    # alias for find.sh
 ├── CLAUDE.md                 # the agent's playbook: browser method, widget recipes, rules
 ├── config/
 │   ├── settings.json         # run knobs and target criteria      (yours, gitignored)

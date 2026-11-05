@@ -6,8 +6,9 @@ this file is the what (rules, per-application procedure, log format). Every valu
 
 ## Run config
 Read from `config/settings.json`:
-- `run.max_applications_per_run` — hard cap. The launcher passes it in the prompt; an argument to
-  `./run.sh` overrides it.
+- `run.max_applications_per_run` — hard cap for the original one-shot run. In this fork `./apply.sh`
+  defaults the cap to the number of approved listings; an argument (`./apply.sh 2`) overrides it.
+  Only listings the user approved in `state/review.json` are ever in scope; see CLAUDE.md, APPROVAL GATE.
 - `run.dry_run` — **contributor flag, absent from the default config on purpose.** When present and
   true, fill and verify and screenshot every form, then close the tab WITHOUT submitting, and log
   the application as DRY RUN. It exists so contributors can iterate against real forms without

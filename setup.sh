@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# please-hire-me — one-time setup. Run this once, then use ./run.sh.
+# please-hire-me (approval fork) — one-time setup. Run this once, then use ./find.sh, ./review.sh, ./apply.sh.
 set -uo pipefail
 cd "$(dirname "$0")"
 
@@ -302,7 +302,7 @@ if [ "$FREQ" != "manual" ]; then
     echo "  ${DIM}Later: ./scripts/schedule.sh install${OFF}"
   fi
 else
-  echo "  ${DIM}Frequency is 'manual'. Run ./run.sh yourself, or set a frequency in config/settings.json.${OFF}"
+  echo "  ${DIM}Frequency is 'manual'. Run ./find.sh yourself, or set a frequency in config/settings.json.${OFF}"
 fi
 
 # ── 6. What's left ───────────────────────────────────────────────────────────
@@ -322,12 +322,14 @@ cat <<EOF
   from that file, it leaves blank and logs as NEEDS HUMAN.
 
   Then:
-    ${BOLD}./run.sh${OFF}          one run now, obeying config/settings.json
-    ${BOLD}./run.sh 1${OFF}        a single application, good for a first test
-    ${BOLD}tail -f logs/scheduled-run.log${OFF}   watch a scheduled run
+    ${BOLD}./find.sh${OFF}         find and vet listings (never submits)
+    ${BOLD}./review.sh${OFF}       approve or reject each listing it found
+    ${BOLD}./apply.sh${OFF}        submit only the listings you approved
+    ${BOLD}./apply.sh --checkpoint${OFF}   same, but stops before every Submit for your yes
+    ${BOLD}tail -f logs/scheduled-run.log${OFF}   watch a scheduled find
 
-  Tip for the first run: open the repo in Claude Code and ask for one application,
-  saying stop before submitting. You see every answer and approve it before it is
-  sent. ./run.sh is headless and submits on its own.
+  Nothing is ever sent without your approval: scheduled runs only find listings.
+  Tip for the first application: ./apply.sh --checkpoint, so you also see every
+  filled-in answer before it is sent.
 
 EOF

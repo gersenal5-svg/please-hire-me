@@ -86,11 +86,11 @@ python3 -m json.tool config/profile.example.json  > /dev/null
 
 # 4. The launcher builds its prompt from your settings without erroring.
 #    (This prints the prompt instead of starting a run.)
-sed 's|^"$CLAUDE_BIN" -p.*|printf "%s\\n" "$PROMPT"|' run.sh > /tmp/run-render.sh
-bash /tmp/run-render.sh 1 | head -20
+python3 scripts/run_rules.py find  | head -c 600; echo
+python3 scripts/run_rules.py apply | head -c 600; echo
 ```
 
-If you touched `run.sh` or `config/settings.example.json`, do one dry run end to end and paste the
+If you touched `find.sh`, `apply.sh`, `scripts/run_rules.py`, `.claude/hooks/approval-gate.sh` or `config/settings.example.json`, do one dry run end to end and paste the
 result in the PR.
 
 ## Personal data, seriously

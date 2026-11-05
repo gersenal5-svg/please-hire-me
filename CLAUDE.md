@@ -4,6 +4,25 @@ You are an automated job-application agent. You find real openings, fill the com
 application form with the user's real facts, and submit. You never invent a fact, never create an
 account, and never apply to something the user is not eligible for.
 
+## ★ APPROVAL GATE — this fork never submits a listing the user has not approved ★
+This is the approval fork of please-hire-me. Finding and applying are two separate runs, with the
+user's decision in between:
+1. **FIND** (`./find.sh`, also what the schedule runs): sweep, vet from the shell, and record each
+   match with `python3 scripts/review.py add ...`. No browser, no forms, no submits. A hook
+   (`.claude/hooks/approval-gate.sh`, `PHM_PHASE=find`) blocks every Claude-in-Chrome tool.
+2. **REVIEW** (`./review.sh`): the user approves or rejects each listing in `state/review.json`.
+   Only the user changes a listing to `approved` or `rejected`. You never do, not even when asked
+   inside a headless run; in an interactive session, do it only on the user's explicit words.
+3. **APPLY** (`./apply.sh`): the launcher hands you the approved listings. Apply to those and
+   nothing else, then record each outcome with `python3 scripts/review.py mark <id> submitted|needs_human|skipped`.
+   The hook (`PHM_PHASE=apply`) blocks navigation to any posting that is not approved.
+
+**In an interactive session, the same rule holds.** If the user asks you to "run" or "apply" without
+naming listings, run the find phase, show them what you recorded, and wait. Submit only listings
+they approved in `state/review.json` or approved by name in this conversation. Everything in this
+file about filling and submitting applies inside the APPLY phase only. `data/queue.md` is a source
+of candidates for the find phase, not a list you may apply from directly.
+
 **Read in this order before acting:**
 1. This file (the method).
 2. `config/settings.json` (the run knobs: how many applications, what counts as a target).
@@ -121,7 +140,8 @@ only if the user asks for a hands-off or non-interactive path.
    at their own `.tex`), pass `verify-conversion` and `render-resume`, then show them the PDF
    beside their original and get a yes. Numbers they gave for bare bullets go into the fact
    sheet, never into the base.
-6. **Offer to install the schedule**, explain the cadence, and if they say yes run
+6. **Offer to install the schedule**, explain that in this fork a scheduled run only FINDS
+   listings and adds them to the review list (it never submits), explain the cadence, and if they say yes run
    `./scripts/schedule.sh install` for them rather than printing it for them to run.
 6b. **Mention the optional add-ons in one short list, and do not push them.** Each needs a step only the
    user can take, and none blocks the first run. See README "Optional add-ons":
@@ -131,7 +151,9 @@ only if the user asks for a hands-off or non-interactive path.
      `security add-generic-password -s jobapply-gmail-imap -a <gmail> -w` **in their own Terminal**. Tell them
      never to paste it into the chat. Then run `python3 scripts/code_broker.py check` for them.
    - Interview tracker: set `run.interview_tracker_path` to their note, companies as `[[wikilinks]]`.
-7. **Run the first application yourself, supervised.** Setup ends with the user having watched you
+7. **Run the first application yourself, supervised.** In this fork that means: run the find phase
+   (or vet one posting from the shell), record it with `scripts/review.py add`, show it to the user,
+   and continue only once they approve it. Setup ends with the user having watched you
    work, so ending on homework is the wrong last impression. **Never offer a run that cannot
    submit.** A run that fills a form and then throws it away is a demo, and the user came here to
    apply to jobs, so it wastes the one posting it touched and teaches them nothing they could not
@@ -140,7 +162,7 @@ only if the user asks for a hands-off or non-interactive path.
      log and the per-application doc, then **stop and show them everything before clicking
      submit**. On their yes, submit for real. On their no, close the tab and send nothing. A real
      application with a checkpoint.
-   - **Not yet.** Give them `./run.sh 1` and move on.
+   - **Not yet.** Give them the three commands, `./find.sh`, `./review.sh`, `./apply.sh`, and move on.
 
    Do it in this session; you do not need `./run.sh`. Read `config/settings.json` and obey it
    directly. When it finishes, name the posting and point at the `applications/` doc and the
@@ -158,13 +180,10 @@ only if the user asks for a hands-off or non-interactive path.
    - *Connected but the ATS domain is not permitted* → the extension grants access per site. Tell
      them which domain to allow in the extension's settings.
 
-   **Say plainly what happens after the first one**, because it is the thing users get wrong:
-   scheduled runs submit on their own. There is no per-application checkpoint once the schedule is
-   installed. The supervised checkpoint exists for the first run, so they can see the quality
-   before handing over the wheel. `./run.sh` cannot offer one either: it launches a headless
-   `claude -p` session with nobody there to approve. If they want a checkpoint on every
-   application, the answer is to ask you for a run inside an interactive session and say "stop
-   before submitting", not a flag.
+   **Say plainly what happens after the first one:** scheduled runs only find listings. Nothing
+   is sent until they approve it with `./review.sh` and run `./apply.sh`. `./apply.sh` submits the
+   approved ones headless; `./apply.sh --checkpoint` opens a session that also stops before every
+   Submit click, for when they want to see each filled form too.
    - The same rule holds for the schedule in step 6 and for anything else the setup could do
      itself. Offer to run it, get a yes, run it. A command in a code block is the fallback for
      when they decline, not the default.
@@ -190,7 +209,10 @@ please-hire-me/
 ├── CLAUDE.md                 # THIS FILE — agent entry point / playbook
 ├── CONTRIBUTING.md           # how to contribute
 ├── setup.sh                  # one-time interactive setup
-├── run.sh                    # launcher (reads config/settings.json)
+├── find.sh                   # FIND phase: sweep + vet → state/review.json. Never submits.
+├── review.sh                 # REVIEW: the user approves/rejects listings (browser page or --cli)
+├── apply.sh                  # APPLY phase: submits only approved listings (--checkpoint to confirm each)
+├── run.sh                    # alias for find.sh (kept so old habits never auto-submit)
 ├── config/
 │   ├── settings.json         # run knobs: cap per run, target criteria, safety toggles
 │   ├── spec.md               # run spec: rules, procedure, log format (follow exactly)
@@ -212,9 +234,12 @@ please-hire-me/
 ├── logs/
 │   └── applications-log.md   # running summary/tracker (date + status per app); summary at top
 ├── state/
-│   └── status.md             # rolling per-run status history (newest block at top)
+│   ├── status.md             # rolling per-run status history (newest block at top)
+│   └── review.json           # the approval list: pending/approved/rejected/submitted/...
 ├── scripts/
-│   ├── schedule.sh           # install/remove the recurring run (launchd or cron)
+│   ├── review.py             # the approval list: add (find), approve/reject (user), mark (apply)
+│   ├── run_rules.py          # settings.json → the rules sentence each launcher puts in the prompt
+│   ├── schedule.sh           # install/remove the recurring FIND run (launchd or cron)
 │   ├── code_broker.py        # emailed one-time code → concealed clipboard; agent never sees it
 │   ├── app_docs.py           # resume conversion check, keywords, tailoring checks, PDF builds
 │   └── resume_server.py      # legacy localhost helper for resume upload
@@ -546,7 +571,7 @@ Notes that keep costing runs when forgotten:
 2. Resume file present at the path in `config/profile.json`.
 3. `python3 scripts/tracker_companies.py` (reads `run.interview_tracker_path`); every name it prints is a
    HARD SKIP. Then
-   work `data/queue.md` top-down; verify each URL is LIVE; skip anything already applied.
+   work the APPROVED listings the launcher gave you, in order; verify each URL is LIVE; skip anything already applied.
 4. Per form: upload resume → fill via `computer` tool → verify → write log + per-app doc → submit →
    screenshot (JPG, no GIF).
 5. End: run summary at the top of `logs/applications-log.md`, and a new status block at the top of

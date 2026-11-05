@@ -10,13 +10,24 @@
             "statusMessage": "Checking secret-store access policy"
           }
         ]
+      },
+      {
+        "matcher": "mcp__claude-in-chrome__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/approval-gate.sh\"",
+            "statusMessage": "Checking the listing is one you approved"
+          }
+        ]
       }
     ]
   },
   "permissions": {
     "allow": [
       "Bash(python3 scripts/apphelper.py *)",
-      "Bash(python3 scripts/tailor.py *)"
+      "Bash(python3 scripts/tailor.py *)",
+      "Bash(python3 scripts/review.py *)"
     ]
   }
 }

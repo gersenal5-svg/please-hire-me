@@ -11,9 +11,13 @@
     "interview_tracker_path": "",
     "_interview_tracker_note": "Optional absolute path to a note or file where YOU track interviews, OAs and recruiter threads (any format; company names are grepped). When set, the agent reads it at the start of every run and treats every company named in it as a HARD SKIP, on top of skip_companies. Keep it current and you never have to edit skip_companies by hand. Empty means off."
   },
+  "review": {
+    "max_new_listings_per_find": 25,
+    "_review_note": "Approval fork. ./find.sh records at most this many new listings per run on your review list (state/review.json). Nothing is applied to until you approve it in ./review.sh and run ./apply.sh."
+  },
   "schedule": {
     "frequency": "manual",
-    "_frequency_options": "manual | hourly | every-2-hours | every-3-hours | every-6-hours | daily | weekdays"
+    "_frequency_options": "manual | hourly | every-2-hours | every-3-hours | every-6-hours | daily | weekdays. In this fork a scheduled run only FINDS listings; it never submits."
   },
   "documents": {
     "cover_letter": true,
